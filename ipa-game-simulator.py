@@ -8,31 +8,32 @@ from random import shuffle, choice
 # from time import sleep
 from collections import Counter
 import logging
+import sys
 
 
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
-def string2list(string):
+def string2list(string): # preprossess our table into python nested list
     lines = string.split('\n')
-    nested_list = [line.split('\t') for line in lines]
+    nested_list = [line.split('\t') for line in lines] 
     # print(nested_list)
-    nested_nested_list = [[grid.split(', ') for grid in line] for line in nested_list] # dealing with "ʙ, ⱱ̟" and "ɾ, r"
-    return [list(filter(None, line)) for line in nested_nested_list]
+    nested_nested_list = [[grid.split(', ') for grid in line] for line in nested_list] # dealing with "ʙ, ⱱ̟" and "ɾ, r": two IPAs in the same grid
+    return [list(filter(None, line)) for line in nested_nested_list] # [list(filter(None, line)) for line in nested_list] for original one (each grid one IPA)
 
-def flatten(nested_list): # and remove all empty str at the same time
+def flatten(nested_list): # flatten the complicated list and remove all empty str at the same time
     flat_list = []
     for item in nested_list:
         if isinstance(item, list):
             flat_list.extend(flatten(item))
         else:
             flat_list.append(item)
-    flat_list_cleaned = [i for i in flat_list if i != ""]
+    flat_list_cleaned = [i for i in flat_list if i != ""] # if i != ""
     return flat_list_cleaned
 
 def drawFromDeck(curPlayer):
     playersCards[curPlayer].append(cardDeck.pop(0))
 
-def hasSameRowCol(curPlayer, topCardInfo):
+def hasSameRowCol(curPlayer, topCardInfo): # "HAS": if playersCards have the same place / manner as the top card 
     # topCardInfo = consInfo[topCard]
     # playerCardInfo = []
     hasSameRowCol = False
@@ -45,7 +46,7 @@ def hasSameRowCol(curPlayer, topCardInfo):
                 break
     return hasSameRowCol
 
-def playRegularCombo(curPlayer, topCardInfo):
+def playRegularCombo(curPlayer, topCardInfo): # "PLAY": play regular or combo, randomly select
     # topCardInfo = consInfo[topCard]
     playerCardInfo = []
     for card in playersCards[curPlayer]:
@@ -55,13 +56,13 @@ def playRegularCombo(curPlayer, topCardInfo):
     toPlay = choice(playerCardInfo)
     return toPlay
 
-def hasSpecialVowel(curPlayer):
+def hasSpecialVowel(curPlayer): # "HAS": if the players cards contain a special or a vowel
     for card in playersCards[curPlayer]:
         if card in specialList or card in vowelList:
             return True
     return False
 
-def chooseSpecialVowel(curPlayer): # Select a card that is special or vowel (but won't be played, just to select special or vowel)
+def chooseSpecialVowel(curPlayer): # "PLAY": Select a card that is special or vowel (but won't be played, just to select special or vowel)
     playerCardInfo = []
     for card in playersCards[curPlayer]:
         if card in specialList or card in vowelList:
@@ -77,46 +78,49 @@ def findMaxCategory(curPlayer): # Find the player has more same place or more sa
             manner, place = consInfo[item]
             manner_counter[manner] += 1
             place_counter[place] += 1  
-    logging.info(f"Player {curPlayer}: Manner of articulation counts: {manner_counter}")
+    logging.info(f"Player {curPlayer}: Manner of articulation counts: {manner_counter}") # e.g., Counter({5: 2, 4: 2, 3: 1})
     logging.info(f"Player {curPlayer}: Place of articulation counts: {place_counter}")
+    
+    # record the keys with max values for both manner and place
     max_manner = max(manner_counter.values(), default=0)
     max_manner_key = max(manner_counter, key=manner_counter.get, default=None)
     max_place = max(place_counter.values(), default=0)
     max_place_key = max(place_counter, key=place_counter.get, default=None)
-    # Compare and select based on the larger count
+    # Compare and select based on the larger count (place or manner)
     if max_place > max_manner:
         relevant_list = specialList[0:7] + specialList[14:]
         isManner = False # is place: 0, is manner: 1
         key = max_place_key
         logging.info('place is larger')
-    else:
+    else: # also max_place == max_manner, we select manner
         relevant_list = specialList[7:14] + specialList[14:]
         isManner = True
         key = max_manner_key
-        logging.info('manner is larger')
+        logging.info('manner is larger (or equal)')
+    
     
     final_filtered_list = [item for item in playersCards[curPlayer] if item in relevant_list]
     logging.info(final_filtered_list)
-    if len(final_filtered_list) != 0: 
+    if len(final_filtered_list) != 0: # if playersCards has anything in relevant_list (place or nammer), we can choose it
         toPlay = choice(final_filtered_list)
-    else: 
+    else:  # else we choose from the list of "every special ones", see if playersCards has anything
         final_filtered_list = [item for item in playersCards[curPlayer] if item in specialList]
         toPlay = choice(final_filtered_list)
-        isManner = toPlay in specialList[7:14]
+        isManner = toPlay in specialList[7:14] # is place: False, is manner: True
         if isManner == 0: # is place
             key = max_place_key
-        else:
+        else: # is manner
             key = max_manner_key
     # return toPlay, isManner, key, specialList.index(toPlay)
     return toPlay, isManner, key
 
-def inside(thePlayerCards, comboList):
+def inside(thePlayerCards, comboList): # "HAS": if the players cards contain a eligible combo
     for card in thePlayerCards:
         if card in comboList:
             return True
     return False
 
-def playCombo(curPlayer, comboList):
+def playCombo(curPlayer, comboList): # "PLAY": Play the combo
     playerCardInfo = []
     for card in playersCards[curPlayer]:
         if card in comboList:
@@ -125,6 +129,7 @@ def playCombo(curPlayer, comboList):
     return toPlay
 
 
+# Original Date copied from the excel file
 regularComboTable_string = """m̥	m	ɱ̊	ɱ			n̥	n			ɳ̊	ɳ			ɲ̊	ɲ	ŋ̊	ŋ	ɴ̥	ɴ				
 p	b	p̪	b̪			t	d			ʈ	ɖ			c	ɟ	k	ɡ	q	ɢ	ʡ		ʔ	
 pɸ	bβ	p̪f	b̪v			ts	dz	t̠ʃ	d̠ʒ	tʂ	dʐ	tɕ	dʑ	cç	ɟʝ	kx	ɡɣ	qχ	ɢʁ				
@@ -150,7 +155,9 @@ vowelTable_string = """a	e	i	o	u	ɛ	ɔ	ə	y	ɨ	ɯ	ʌ
 cardTable_string = regularComboTable_string + "\n" + specialTable_string + vowelTable_string
 
 roundRecord = []
-for game in range(1000):
+GAME_TESTS = 1
+
+for game in range(GAME_TESTS):
     
     regularComboTable = string2list(regularComboTable_string)
     comboList = flatten(regularComboTable[6:])
@@ -166,7 +173,7 @@ for game in range(1000):
                 consInfo[ipa] = (i, j) # (manner, place)
     
     
-    playersNum = 4 # number of players
+    playersNum = 2 # number of players
     
     playersCards = [[] for _ in range(playersNum)] # create empty lists for all players that contains the cards they currently have
     
@@ -178,9 +185,22 @@ for game in range(1000):
             playersCards[i].append(cardDeck.pop(0))
     
     # STRATEGY:
-        # if player have eligible cards from Regular/Combo -> play the card -> can play with a combo?
+        # if player have eligible cards from Regular/Combo -> select random one and play the card
+            # can play with a combo?
+                # if is voiced and playersCards has Ejective stops -> play the combo
+                # elif is voiceless and playersCards has Ejective affricates -> play the combo
+                # elif is plosive or affricate and playersCards has coronal ejective fricatives -> play the combo
         # elif vowels/special random
+            # random select vowels / specials
+                # if is special
+                    # find the row or column where the player has the most cards (if equal, "manner" is chosen)
+                    # let's say row has maximum counts
+                        # if we have special cards that changes rows -> go ahead
+                        # else we only have special cards that changes columns -> then change column instead
+                # elif is vowel
+                    # random select one vowel (regardless of the function) -> do we have nasalizaition?
         # else draw from card deck
+            # see if this card can be played
     
     
     logging.info(f"First 5 cards from the deck: {cardDeck[:5]}")
@@ -197,13 +217,15 @@ for game in range(1000):
     direction = 1
     hasToSkip = False
     sayVowel = (0, "")
+    
+    # The Game Begins
     while all(len(player) != 0 for player in playersCards): # until anyone has 0 cards
         cntRound += 1 # count how many rounds; a round is when everyone has played once
         
-        for curPlayer in range(playersNum): # iterate every person
-            if not hasToSkip:
+        for curPlayer in range(playersNum): # iterate every person in a round
+            if not hasToSkip: # Skip: the function card
                 cntDraws = 0
-                for __ in range(2):
+                for __ in range(2): # one might have the second chance to play (if drawn a card from the card deck, one can see if they can play it once)
                     for _ in range(drawCards): playersCards[curPlayer].append(cardDeck.pop(0)) # cards that this player has to draw from the prev player
                     if drawCards: logging.info(f"player {curPlayer} has drawn {drawCards} cards!")
                     if sayVowel[0] == curPlayer: sayVowel = (curPlayer, "")
@@ -234,6 +256,7 @@ for game in range(1000):
                         topCard = toPlay
                         topCardInfo = consInfo[topCard]
                         
+                        # Say vowel
                         if sayVowel[1] != "":
                             if sayVowel[0] != curPlayer: logging.info(f"player {curPlayer} has said /{toPlay}{sayVowel[1]}/")
                             else: sayVowel = (curPlayer, "")
@@ -241,6 +264,7 @@ for game in range(1000):
                         
                     elif hasSpecialVowel(curPlayer):
                         toPlay = chooseSpecialVowel(curPlayer)
+                        
                         if toPlay in specialList: # if it is special, not vowel
                             toPlay, isManner, key = findMaxCategory(curPlayer)
 
@@ -248,17 +272,18 @@ for game in range(1000):
                             logging.info(f"player {curPlayer} has played special {toPlay}; cur. # of cards: {len(playersCards[curPlayer])}")
                             if not isManner:  # is place to change
                                 if key == None: # if they don't even have reg cards
-                                    key = choice(range(24))
+                                    key = choice(range(24)) # random select a place
                                 topCardInfo = (topCardInfo[0], key)
                                 logging.info(f"player {curPlayer} has change place to {key}; now: {topCardInfo}")
                             else: 
                                 if key == None: # if they don't even have reg cards
-                                    key = choice(range(9))
+                                    key = choice(range(9)) # random select a manner
                                 topCardInfo = (key, topCardInfo[1])
                                 logging.info(f"player {curPlayer} has change manner to {key}; now: {topCardInfo}")
                             # specialList[0:7]: place of articulation
                             # specialList[7:14]: manner of articulation
                             # specialList[14:]: either
+                            
                         else: # is vowel
                             playersCards[curPlayer].remove(toPlay)
                             sayVowel = (curPlayer, toPlay) # from whom, say what vowel
@@ -284,32 +309,33 @@ for game in range(1000):
                     
                         
                     else: # draw from card deck
-                        if cntDraws == 0:
+                        if cntDraws == 0: # if cntDraws == 1, you have drawn a card in this round already but you still don't have any cards to play, skip you round and go to the next person
                             toDraw = cardDeck.pop(0)
                             playersCards[curPlayer].append(toDraw)
                             logging.info(f"player {curPlayer} has drawn a card from the deck: {toDraw}")
                             cntDraws += 1
                             # And repeat the previous step once
                             
-                    if len(playersCards[curPlayer]) == 1: logging.info(f"player {curPlayer} has said '[ɪ̀.pʰá]'!")
+                    if len(playersCards[curPlayer]) == 1: logging.info(f"player {curPlayer} has said '[ɪ̀.pʰá]'!") # Last card shout out IPA
             else: 
                 logging.info(f"player {curPlayer} is skipped")
                 hasToSkip = False
                 
     
             
-            curPlayer = (curPlayer + 1 * direction) % playersNum
+            curPlayer = (curPlayer + 1 * direction) % playersNum # go to the next player; direction: -1 is the reversed, else 1 normally
             # sleep(0.1)
-            if not all(len(player) != 0 for player in playersCards):
+            if not all(len(player) != 0 for player in playersCards):  # if anyone has no cards left, end the game
                 break
             
     #drawFromDeck(curPlayer)
     
     logging.info("Game ends.")
-    print(f'Game {game} ends. Used {cntRound} rounds.')
-    roundRecord.append(cntRound)
+    if GAME_TESTS > 1: # if we are testing how many rounds in average
+        print(f'Game {game} ends. Used {cntRound} rounds.')
+        roundRecord.append(cntRound)
 
-print(f"AVG rounds: {sum(roundRecord)/len(roundRecord)}")
+if GAME_TESTS > 1: print(f"AVG rounds: {sum(roundRecord)/len(roundRecord)}")
     
     
     
