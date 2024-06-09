@@ -154,8 +154,9 @@ vowelTable_string = """a	e	i	o	u	ɛ	ɔ	ə	y	ɨ	ɯ	ʌ
 
 cardTable_string = regularComboTable_string + "\n" + specialTable_string + vowelTable_string
 
-roundRecord = []
-GAME_TESTS = 1
+turnsRecord = []
+turns_counter = Counter()
+GAME_TESTS = 10000
 
 for game in range(GAME_TESTS):
     
@@ -212,130 +213,138 @@ for game in range(GAME_TESTS):
     logging.info(f"First card: {topCard}. Game start.")
     
     # curPlayer = 0
-    cntRound = 0
+    cntTurns = 0
     drawCards = 0
     direction = 1
     hasToSkip = False
     sayVowel = (0, "")
+    curPlayer = 0
     
     # The Game Begins
     while all(len(player) != 0 for player in playersCards): # until anyone has 0 cards
-        cntRound += 1 # count how many rounds; a round is when everyone has played once
+        cntTurns += 1 # count how many turns; a turn is when a person has played once
         
-        for curPlayer in range(playersNum): # iterate every person in a round
-            if not hasToSkip: # Skip: the function card
-                cntDraws = 0
-                for __ in range(2): # one might have the second chance to play (if drawn a card from the card deck, one can see if they can play it once)
-                    for _ in range(drawCards): playersCards[curPlayer].append(cardDeck.pop(0)) # cards that this player has to draw from the prev player
-                    if drawCards: logging.info(f"player {curPlayer} has drawn {drawCards} cards!")
-                    if sayVowel[0] == curPlayer: sayVowel = (curPlayer, "")
-                    logging.info(f"Top card: {topCard}; info: {topCardInfo}")
-                    drawCards = 0 # reset
-                    
-                    if hasSameRowCol(curPlayer, topCardInfo): # if player have eligible cards from Regular/Combo 
-                        toPlay = playRegularCombo(curPlayer, topCardInfo)
-                        playersCards[curPlayer].remove(toPlay)
-    
-                        # play combo (+consonants)
-                        if consInfo[toPlay][1]%2==1 and inside(playersCards[curPlayer], comboList[0:7]): # is voiced (odd cols) and playersCards has Ejective stops
-                            toCombo = playCombo(curPlayer, comboList[0:7])
-                            playersCards[curPlayer].remove(toCombo)
-                            comboDiac = '\u0325' # voiceless
-                        elif consInfo[toPlay][1]%2==0 and inside(playersCards[curPlayer], comboList[7:14]): # is voiceless (even cols) and playersCards has Ejective affricates 
-                            toCombo = playCombo(curPlayer, comboList[7:14])
-                            playersCards[curPlayer].remove(toCombo)
-                            comboDiac = '\u032c' # voiced
-                        elif (consInfo[toPlay][0] == 1 or consInfo[toPlay][0] == 2) and inside(playersCards[curPlayer], comboList[16:21]): # is (plosive or affricate) and playersCards has coronal ejective fricatives
-                            toCombo = playCombo(curPlayer, comboList[16:21])
-                            playersCards[curPlayer].remove(toCombo)
-                            comboDiac = 'ʰ'
-                        else:
-                            comboDiac = ''
-                        
-                        logging.info(f"player {curPlayer} has played {toPlay}{comboDiac}; info: {consInfo[toPlay]}; cur. # of cards: {len(playersCards[curPlayer])}")
-                        topCard = toPlay
-                        topCardInfo = consInfo[topCard]
-                        
-                        # Say vowel
-                        if sayVowel[1] != "":
-                            if sayVowel[0] != curPlayer: logging.info(f"player {curPlayer} has said /{toPlay}{sayVowel[1]}/")
-                            else: sayVowel = (curPlayer, "")
-                        break
-                        
-                    elif hasSpecialVowel(curPlayer):
-                        toPlay = chooseSpecialVowel(curPlayer)
-                        
-                        if toPlay in specialList: # if it is special, not vowel
-                            toPlay, isManner, key = findMaxCategory(curPlayer)
-
-                            playersCards[curPlayer].remove(toPlay)
-                            logging.info(f"player {curPlayer} has played special {toPlay}; cur. # of cards: {len(playersCards[curPlayer])}")
-                            if not isManner:  # is place to change
-                                if key == None: # if they don't even have reg cards
-                                    key = choice(range(24)) # random select a place
-                                topCardInfo = (topCardInfo[0], key)
-                                logging.info(f"player {curPlayer} has change place to {key}; now: {topCardInfo}")
-                            else: 
-                                if key == None: # if they don't even have reg cards
-                                    key = choice(range(9)) # random select a manner
-                                topCardInfo = (key, topCardInfo[1])
-                                logging.info(f"player {curPlayer} has change manner to {key}; now: {topCardInfo}")
-                            # specialList[0:7]: place of articulation
-                            # specialList[7:14]: manner of articulation
-                            # specialList[14:]: either
-                            
-                        else: # is vowel
-                            playersCards[curPlayer].remove(toPlay)
-                            sayVowel = (curPlayer, toPlay) # from whom, say what vowel
-                            logging.info(f"player {curPlayer} has played vowel {toPlay}; cur. # of cards: {len(playersCards[curPlayer])}")
-                            if toPlay in vowelList[12:16]: # skip next player
-                                logging.info(f"player {curPlayer} has played skipped; now player {(curPlayer + 1 * direction) % playersNum} is skipped")
-                                hasToSkip = True 
-                            elif toPlay in vowelList[12:16]: # reverse
-                                direction *= -1
-                                logging.info(f"player {curPlayer} has played reverse")
-                            elif toPlay in vowelList[12:16]: # +2
-                                drawCards = 2
-                                logging.info(f"player {curPlayer} has played +2; now player {(curPlayer + 1 * direction) % playersNum} has to draw 2 cards")
-                            elif toPlay in vowelList[12:16]: # +4
-                                drawCards = 4
-                                logging.info(f"player {curPlayer} has played +4; now player {(curPlayer + 1 * direction) % playersNum} has to draw 4 cards")
-                            # play combo (+vowels) # +"\u0303"
-                            if inside(playersCards[curPlayer], comboList[14:16]+comboList[21:]):
-                                logging.info(f"player {curPlayer} has used nasalization; cur. # of cards: {len(playersCards[curPlayer])}")
-                                sayVowel = (curPlayer, toPlay+"\u0303") # nasalized
-                        # Add special function / Add vowel counts / Add vowel function
-                        break
-                    
-                        
-                    else: # draw from card deck
-                        if cntDraws == 0: # if cntDraws == 1, you have drawn a card in this round already but you still don't have any cards to play, skip you round and go to the next person
-                            toDraw = cardDeck.pop(0)
-                            playersCards[curPlayer].append(toDraw)
-                            logging.info(f"player {curPlayer} has drawn a card from the deck: {toDraw}")
-                            cntDraws += 1
-                            # And repeat the previous step once
-                            
-                    if len(playersCards[curPlayer]) == 1: logging.info(f"player {curPlayer} has said '[ɪ̀.pʰá]'!") # Last card shout out IPA
-            else: 
-                logging.info(f"player {curPlayer} is skipped")
-                hasToSkip = False
+        # for curPlayer in range(playersNum): # iterate every person in a round
+        if not hasToSkip: # Skip: the function card
+            cntDraws = 0
+            for __ in range(2): # one might have the second chance to play (if drawn a card from the card deck, one can see if they can play it once)
+                for _ in range(drawCards): playersCards[curPlayer].append(cardDeck.pop(0)) # cards that this player has to draw from the prev player
+                if drawCards: logging.info(f"player {curPlayer} has drawn {drawCards} cards!")
+                if sayVowel[0] == curPlayer: sayVowel = (curPlayer, "")
+                logging.info(f"Top card: {topCard}; info: {topCardInfo}")
+                drawCards = 0 # reset
                 
-    
+                if hasSameRowCol(curPlayer, topCardInfo): # if player have eligible cards from Regular/Combo 
+                    toPlay = playRegularCombo(curPlayer, topCardInfo)
+                    playersCards[curPlayer].remove(toPlay)
+
+                    # play combo (+consonants)
+                    if consInfo[toPlay][1]%2==1 and inside(playersCards[curPlayer], comboList[0:7]): # is voiced (odd cols) and playersCards has Ejective stops
+                        toCombo = playCombo(curPlayer, comboList[0:7])
+                        playersCards[curPlayer].remove(toCombo)
+                        comboDiac = '\u0325' # voiceless
+                    elif consInfo[toPlay][1]%2==0 and inside(playersCards[curPlayer], comboList[7:14]): # is voiceless (even cols) and playersCards has Ejective affricates 
+                        toCombo = playCombo(curPlayer, comboList[7:14])
+                        playersCards[curPlayer].remove(toCombo)
+                        comboDiac = '\u032c' # voiced
+                    elif (consInfo[toPlay][0] == 1 or consInfo[toPlay][0] == 2) and inside(playersCards[curPlayer], comboList[16:21]): # is (plosive or affricate) and playersCards has coronal ejective fricatives
+                        toCombo = playCombo(curPlayer, comboList[16:21])
+                        playersCards[curPlayer].remove(toCombo)
+                        comboDiac = 'ʰ'
+                    else:
+                        comboDiac = ''
+                    
+                    logging.info(f"player {curPlayer} has played {toPlay}{comboDiac}; info: {consInfo[toPlay]}; cur. # of cards: {len(playersCards[curPlayer])}")
+                    topCard = toPlay
+                    topCardInfo = consInfo[topCard]
+                    
+                    # Say vowel
+                    if sayVowel[1] != "":
+                        if sayVowel[0] != curPlayer: logging.info(f"player {curPlayer} has said /{toPlay}{sayVowel[1]}/")
+                        else: sayVowel = (curPlayer, "")
+                    break
+                    
+                elif hasSpecialVowel(curPlayer):
+                    toPlay = chooseSpecialVowel(curPlayer)
+                    
+                    if toPlay in specialList: # if it is special, not vowel
+                        toPlay, isManner, key = findMaxCategory(curPlayer)
+
+                        playersCards[curPlayer].remove(toPlay)
+                        logging.info(f"player {curPlayer} has played special {toPlay}; cur. # of cards: {len(playersCards[curPlayer])}")
+                        if not isManner:  # is place to change
+                            if key == None: # if they don't even have reg cards
+                                key = choice(range(24)) # random select a place
+                            topCardInfo = (topCardInfo[0], key)
+                            logging.info(f"player {curPlayer} has change place to {key}; now: {topCardInfo}")
+                        else: 
+                            if key == None: # if they don't even have reg cards
+                                key = choice(range(9)) # random select a manner
+                            topCardInfo = (key, topCardInfo[1])
+                            logging.info(f"player {curPlayer} has change manner to {key}; now: {topCardInfo}")
+                        # specialList[0:7]: place of articulation
+                        # specialList[7:14]: manner of articulation
+                        # specialList[14:]: either
+                        
+                    else: # is vowel
+                        playersCards[curPlayer].remove(toPlay)
+                        sayVowel = (curPlayer, toPlay) # from whom, say what vowel
+                        logging.info(f"player {curPlayer} has played vowel {toPlay}; cur. # of cards: {len(playersCards[curPlayer])}")
+                        if toPlay in vowelList[12:16]: # skip next player
+                            logging.info(f"player {curPlayer} has played skipped; now player {(curPlayer + 1 * direction) % playersNum} is skipped")
+                            hasToSkip = True 
+                        elif toPlay in vowelList[12:16]: # reverse
+                            direction *= -1
+                            logging.info(f"player {curPlayer} has played reverse")
+                        elif toPlay in vowelList[12:16]: # +2
+                            drawCards = 2
+                            logging.info(f"player {curPlayer} has played +2; now player {(curPlayer + 1 * direction) % playersNum} has to draw 2 cards")
+                        elif toPlay in vowelList[12:16]: # +4
+                            drawCards = 4
+                            logging.info(f"player {curPlayer} has played +4; now player {(curPlayer + 1 * direction) % playersNum} has to draw 4 cards")
+                        # play combo (+vowels) # +"\u0303"
+                        if inside(playersCards[curPlayer], comboList[14:16]+comboList[21:]):
+                            logging.info(f"player {curPlayer} has used nasalization; cur. # of cards: {len(playersCards[curPlayer])}")
+                            sayVowel = (curPlayer, toPlay+"\u0303") # nasalized
+                    # Add special function / Add vowel counts / Add vowel function
+                    break
+                
+                    
+                else: # draw from card deck
+                    if cntDraws == 0: # if cntDraws == 1, you have drawn a card in this round already but you still don't have any cards to play, skip you round and go to the next person
+                        toDraw = cardDeck.pop(0)
+                        playersCards[curPlayer].append(toDraw)
+                        logging.info(f"player {curPlayer} has drawn a card from the deck: {toDraw}")
+                        cntDraws += 1
+                        # And repeat the previous step once
+                        
+                
+        else: 
+            logging.info(f"player {curPlayer} is skipped")
+            hasToSkip = False
             
-            curPlayer = (curPlayer + 1 * direction) % playersNum # go to the next player; direction: -1 is the reversed, else 1 normally
-            # sleep(0.1)
-            if not all(len(player) != 0 for player in playersCards):  # if anyone has no cards left, end the game
-                break
+
+        if len(playersCards[curPlayer]) == 1: logging.info(f"player {curPlayer} has said '[ɪ̀.pʰá]'!") # Last card shout out IPA
+        
+        curPlayer = (curPlayer + 1 * direction) % playersNum # go to the next player; direction: -1 is the reversed, else 1 normally
+        # sleep(0.1)
+        if not all(len(player) != 0 for player in playersCards):  # if anyone has no cards left, end the game
+            break
             
     #drawFromDeck(curPlayer)
     
     logging.info("Game ends.")
     if GAME_TESTS > 1: # if we are testing how many rounds in average
-        print(f'Game {game} ends. Used {cntRound} rounds.')
-        roundRecord.append(cntRound)
+        print(f'Game {game} ends. Used {cntTurns} turns.')
+        turnsRecord.append(cntTurns)
+        turns_counter[cntTurns] += 1
 
-if GAME_TESTS > 1: print(f"AVG rounds: {sum(roundRecord)/len(roundRecord)}")
+if GAME_TESTS > 1: 
+    print(f"Avg turns: {sum(turnsRecord)/len(turnsRecord)}")
+    dct = dict(sorted(dict(turns_counter).items()))
+    print(f"Counts: {dct}")
+    for k, v in dct.items():
+        print(f"{k}\t{v}")
     
     
     
