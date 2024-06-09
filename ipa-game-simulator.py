@@ -9,9 +9,9 @@ from time import sleep
 from collections import Counter
 import logging
 import sys
+import matplotlib.pyplot as plt
 
-
-logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
 def string2list(string): # preprossess our table into python nested list
     lines = string.split('\n')
@@ -156,6 +156,8 @@ cardTable_string = regularComboTable_string + "\n" + specialTable_string + vowel
 
 turnsRecord = []
 turns_counter = Counter()
+winner_counter = Counter()
+win_rate_record = []
 GAME_TESTS = 1
 
 for game in range(GAME_TESTS):
@@ -293,7 +295,7 @@ for game in range(GAME_TESTS):
                         if toPlay in vowelList[12:16]: # skip next player # -12
                             logging.info(f"player {curPlayer} has played skipped; now player {(curPlayer + 1 * direction) % playersNum} is skipped")
                             hasToSkip = True 
-                        elif toPlay in vowelList[16:20]: # reverse
+                        elif toPlay in vowelList[16:20]: # +vowelList[8:12]: # reverse
                             direction *= -1
                             logging.info(f"player {curPlayer} has played reverse")
                         elif toPlay in vowelList[20:24]: # +2
@@ -336,6 +338,10 @@ for game in range(GAME_TESTS):
     logging.info("Game ends.")
     if GAME_TESTS > 1: # if we are testing how many rounds in average
         print(f'Game {game} ends. Used {cntTurns} turns.')
+        empty_indexes = [i for i, sublist in enumerate(playersCards) if not sublist]
+        logging.info(f"Winner: {empty_indexes[0]}")
+        winner_counter[empty_indexes[0]] += 1
+        win_rate_record.append(winner_counter[0]/(game+1))
         turnsRecord.append(cntTurns)
         turns_counter[cntTurns] += 1
 
@@ -345,10 +351,28 @@ if GAME_TESTS > 1:
     print(f"Counts: {dct}")
     for k, v in dct.items():
         print(f"{k}\t{v}")
-    
-    
+"""
+    plt.plot(win_rate_record)
+    plt.xlabel('Simulations')
+    plt.ylabel('Win Rate')
+    plt.title('Cumulative Win-Rate with starting advantage')
+    plt.show()
+"""
     
     # TO-DO:
         # if player have eligible cards from Regular -> can play with a combo?
         # # Add special function / Add vowel counts
         # And repeat the previous step once after drawing a card
+"""
+ABCD = 'ABCD'
+
+# Define the number of cycles
+num_cycles = len(ABCD)
+
+# Perform the cycles
+for i in range(num_cycles):
+    print("Cycle", i+1, ": ", end="")
+    for j in range(len(ABCD)):
+        print(ABCD[(j+i)%len(ABCD)], end="")
+    print()
+"""
