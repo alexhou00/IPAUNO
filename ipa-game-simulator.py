@@ -5,7 +5,7 @@ Created on Sun Jun  9 02:33:02 2024
 @author: alexh
 """
 from random import shuffle, choice
-# from time import sleep
+from time import sleep
 from collections import Counter
 import logging
 import sys
@@ -145,7 +145,7 @@ specialTable_string = """			ʋ				ɹ				ɻ				j		ɰ
 						ɬ	ɮ			ꞎ													
 							l				ɭ				ʎ		ʟ						
 															ɥ		w						
-"""
+""" # vowelTable_string = """
 vowelTable_string = """a	e	i	o	u	ɛ	ɔ	ə	y	ɨ	ɯ	ʌ
 ø	ɵ	œ	ɶ								
 ʉ	ɜ	ɤ	ɞ								
@@ -156,7 +156,7 @@ cardTable_string = regularComboTable_string + "\n" + specialTable_string + vowel
 
 turnsRecord = []
 turns_counter = Counter()
-GAME_TESTS = 10000
+GAME_TESTS = 1
 
 for game in range(GAME_TESTS):
     
@@ -174,7 +174,7 @@ for game in range(GAME_TESTS):
                 consInfo[ipa] = (i, j) # (manner, place)
     
     
-    playersNum = 2 # number of players
+    playersNum = 4 # number of players
     
     playersCards = [[] for _ in range(playersNum)] # create empty lists for all players that contains the cards they currently have
     
@@ -243,7 +243,7 @@ for game in range(GAME_TESTS):
                         toCombo = playCombo(curPlayer, comboList[0:7])
                         playersCards[curPlayer].remove(toCombo)
                         comboDiac = '\u0325' # voiceless
-                    elif consInfo[toPlay][1]%2==0 and inside(playersCards[curPlayer], comboList[7:14]): # is voiceless (even cols) and playersCards has Ejective affricates 
+                    elif (consInfo[toPlay][1]%2==0 and consInfo[toPlay][0]!=5) and inside(playersCards[curPlayer], comboList[7:14]): # is non-click voiceless (even cols) and playersCards has Ejective affricates 
                         toCombo = playCombo(curPlayer, comboList[7:14])
                         playersCards[curPlayer].remove(toCombo)
                         comboDiac = '\u032c' # voiced
@@ -290,16 +290,16 @@ for game in range(GAME_TESTS):
                         playersCards[curPlayer].remove(toPlay)
                         sayVowel = (curPlayer, toPlay) # from whom, say what vowel
                         logging.info(f"player {curPlayer} has played vowel {toPlay}; cur. # of cards: {len(playersCards[curPlayer])}")
-                        if toPlay in vowelList[12:16]: # skip next player
+                        if toPlay in vowelList[12:16]: # skip next player # -12
                             logging.info(f"player {curPlayer} has played skipped; now player {(curPlayer + 1 * direction) % playersNum} is skipped")
                             hasToSkip = True 
-                        elif toPlay in vowelList[12:16]: # reverse
+                        elif toPlay in vowelList[16:20]: # reverse
                             direction *= -1
                             logging.info(f"player {curPlayer} has played reverse")
-                        elif toPlay in vowelList[12:16]: # +2
+                        elif toPlay in vowelList[20:24]: # +2
                             drawCards = 2
                             logging.info(f"player {curPlayer} has played +2; now player {(curPlayer + 1 * direction) % playersNum} has to draw 2 cards")
-                        elif toPlay in vowelList[12:16]: # +4
+                        elif toPlay in vowelList[24:28]: # +4
                             drawCards = 4
                             logging.info(f"player {curPlayer} has played +4; now player {(curPlayer + 1 * direction) % playersNum} has to draw 4 cards")
                         # play combo (+vowels) # +"\u0303"
@@ -327,7 +327,7 @@ for game in range(GAME_TESTS):
         if len(playersCards[curPlayer]) == 1: logging.info(f"player {curPlayer} has said '[ɪ̀.pʰá]'!") # Last card shout out IPA
         
         curPlayer = (curPlayer + 1 * direction) % playersNum # go to the next player; direction: -1 is the reversed, else 1 normally
-        # sleep(0.1)
+        # sleep(1)
         if not all(len(player) != 0 for player in playersCards):  # if anyone has no cards left, end the game
             break
             
