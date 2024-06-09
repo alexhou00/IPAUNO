@@ -11,7 +11,7 @@ import logging
 import sys
 import matplotlib.pyplot as plt
 
-logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+logging.basicConfig(level=logging.WARNING, stream=sys.stdout)
 
 def string2list(string): # preprossess our table into python nested list
     lines = string.split('\n')
@@ -157,11 +157,14 @@ cardTable_string = regularComboTable_string + "\n" + specialTable_string + vowel
 turnsRecord = []
 turns_counter = Counter()
 winner_counter = Counter()
+winner_fair_counter = Counter()
 win_rate_record = []
-GAME_TESTS = 1
+win_rate_fair_record = []
+GAME_TESTS = 10000
 
 for game in range(GAME_TESTS):
-    
+    ABCD = "ABCD"
+    players = ''.join([ABCD[(j+game)%len(ABCD)] for j in range(len(ABCD))])
     regularComboTable = string2list(regularComboTable_string)
     comboList = flatten(regularComboTable[6:])
     specialList = flatten(string2list(specialTable_string))
@@ -341,7 +344,9 @@ for game in range(GAME_TESTS):
         empty_indexes = [i for i, sublist in enumerate(playersCards) if not sublist]
         logging.info(f"Winner: {empty_indexes[0]}")
         winner_counter[empty_indexes[0]] += 1
+        winner_fair_counter[players[empty_indexes[0]]] += 1
         win_rate_record.append(winner_counter[0]/(game+1))
+        win_rate_fair_record.append(winner_fair_counter['A']/(game+1))
         turnsRecord.append(cntTurns)
         turns_counter[cntTurns] += 1
 
@@ -351,13 +356,14 @@ if GAME_TESTS > 1:
     print(f"Counts: {dct}")
     for k, v in dct.items():
         print(f"{k}\t{v}")
-"""
-    plt.plot(win_rate_record)
+
+    plt.plot(win_rate_record, c='r')
+    plt.plot(win_rate_fair_record, c='g')
     plt.xlabel('Simulations')
     plt.ylabel('Win Rate')
     plt.title('Cumulative Win-Rate with starting advantage')
     plt.show()
-"""
+
     
     # TO-DO:
         # if player have eligible cards from Regular -> can play with a combo?
