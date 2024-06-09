@@ -36,7 +36,7 @@ def hasSameRowCol(curPlayer, topCardInfo):
     for card in playersCards[curPlayer]:
         if card in consInfo.keys():
             # playerCardInfo.append(consInfo[card])
-            if (consInfo[card][0] == topCardInfo[0]) or (consInfo[card][1] == topCardInfo[1]):
+            if (consInfo[card][0]//2 == topCardInfo[0]//2) or (consInfo[card][1]//2 == topCardInfo[1]//2): # //2ː voiced or voiceless doesn't matter
                 # return True
                 hasSameRowCol = True   
                 break
@@ -47,7 +47,7 @@ def playRegularCombo(curPlayer, topCardInfo):
     playerCardInfo = []
     for card in playersCards[curPlayer]:
         if card in consInfo.keys():
-            if (consInfo[card][0] == topCardInfo[0]) or (consInfo[card][1] == topCardInfo[1]):
+            if (consInfo[card][0]//2 == topCardInfo[0]//2) or (consInfo[card][1]//2 == topCardInfo[1]//2):
                 playerCardInfo.append(card)
     toPlay = choice(playerCardInfo)
     return toPlay
@@ -67,19 +67,19 @@ def chooseSpecialVowel(curPlayer): # Select a card that is special or vowel (but
     return toPlay
 
 def findMaxCategory(curPlayer): # Find the player has more same place or more same manner, select that one
-    place_counter = Counter()
     manner_counter = Counter()
+    place_counter = Counter()
     for item in playersCards[curPlayer]:
         if item in consInfo:
-            place, manner = consInfo[item]
-            place_counter[place] += 1
+            manner, place = consInfo[item]
             manner_counter[manner] += 1
-    print(f"Player {curPlayer}: Place of articulation counts: {place_counter}")
+            place_counter[place] += 1  
     print(f"Player {curPlayer}: Manner of articulation counts: {manner_counter}")
-    max_place = max(place_counter.values(), default=0)
-    max_place_key = max(place_counter, key=place_counter.get, default=None)
+    print(f"Player {curPlayer}: Place of articulation counts: {place_counter}")
     max_manner = max(manner_counter.values(), default=0)
     max_manner_key = max(manner_counter, key=manner_counter.get, default=None)
+    max_place = max(place_counter.values(), default=0)
+    max_place_key = max(place_counter, key=place_counter.get, default=None)
     # Compare and select based on the larger count
     if max_place > max_manner:
         relevant_list = specialList[0:7] + specialList[14:]
@@ -107,12 +107,27 @@ def findMaxCategory(curPlayer): # Find the player has more same place or more sa
     # return toPlay, isManner, key, specialList.index(toPlay)
     return toPlay, isManner, key
 
+def inside(thePlayerCards, comboList):
+    for card in thePlayerCards:
+        if card in comboList:
+            return True
+    return False
+
+def playCombo(curPlayer, comboList):
+    playerCardInfo = []
+    for card in playersCards[curPlayer]:
+        if card in comboList:
+            playerCardInfo.append(card)
+    toPlay = choice(playerCardInfo)
+    return toPlay
+
+
 regularComboTable_string = """m̥	m	ɱ̊	ɱ			n̥	n			ɳ̊	ɳ			ɲ̊	ɲ	ŋ̊	ŋ	ɴ̥	ɴ				
 p	b	p̪	b̪			t	d			ʈ	ɖ			c	ɟ	k	ɡ	q	ɢ	ʡ		ʔ	
 pɸ	bβ	p̪f	b̪v			ts	dz	t̠ʃ	d̠ʒ	tʂ	dʐ	tɕ	dʑ	cç	ɟʝ	kx	ɡɣ	qχ	ɢʁ				
 ɸ	β	f	v	θ	ð	s	z	ʃ	ʒ	ʂ	ʐ	ɕ	ʑ	ç	ʝ	x	ɣ	χ	ʁ	ħ	ʕ	h	ɦ
 ʙ̥	ʙ, ⱱ̟		ⱱ			r̥	ɾ, r				ɽ							ʀ̥	ʀ	ʜ	ʢ		
-ʘ		ɓ			ǀ		ǃ	ɗ				ᶑ	ǁ		ǂ	ʄ		ɠ		ʛ				
+ʘ	ɓ			ǀ		ǃ	ɗ				ᶑ	ǁ		ǂ	ʄ		ɠ		ʛ				
 """ + """pʼ						tʼ				ʈʼ				cʼ		kʼ		qʼ		ʡʼ			
 		p̪fʼ				tsʼ		t̠ʃʼ		tʂʼ		tɕʼ				kxʼ		qχʼ					
 ɸʼ		fʼ		θʼ		sʼ		ʃʼ		ʂʼ		ɕʼ				xʼ		χʼ					""" 
@@ -134,6 +149,7 @@ cardTable_string = regularComboTable_string + "\n" + specialTable_string + vowel
 
 
 regularComboTable = string2list(regularComboTable_string)
+comboList = flatten(regularComboTable[6:])
 specialList = flatten(string2list(specialTable_string))
 vowelList = flatten(string2list(vowelTable_string))
 cardTable = string2list(cardTable_string)
@@ -143,7 +159,7 @@ consInfo = dict()
 for i, manner in enumerate(regularComboTable):
     for j, grid in enumerate(manner):
         for ipa in grid:
-            consInfo[ipa] = (i, j)
+            consInfo[ipa] = (i, j) # (manner, place)
 
 
 playersNum = 4 # number of players
@@ -186,34 +202,57 @@ while all(len(player) != 0 for player in playersCards): # until anyone has 0 car
             for __ in range(2):
                 for _ in range(drawCards): playersCards[curPlayer].append(cardDeck.pop(0)) # cards that this player has to draw from the prev player
                 if drawCards: print(f"player {curPlayer} has drawn {drawCards} cards!")
+                if sayVowel[0] == curPlayer: sayVowel = (curPlayer, "")
                 print(f"Top card: {topCard}; info: {topCardInfo}")
                 drawCards = 0 # reset
                 
                 if hasSameRowCol(curPlayer, topCardInfo): # if player have eligible cards from Regular/Combo 
                     toPlay = playRegularCombo(curPlayer, topCardInfo)
                     playersCards[curPlayer].remove(toPlay)
+
+                    # play combo (+consonants)
+                    if consInfo[toPlay][1]%2==1 and inside(playersCards[curPlayer], comboList[0:7]): # is voiced (odd cols) and playersCards has Ejective stops
+                        toCombo = playCombo(curPlayer, comboList[0:7])
+                        playersCards[curPlayer].remove(toCombo)
+                        comboDiac = '\u0325' # voiceless
+                    elif consInfo[toPlay][1]%2==0 and inside(playersCards[curPlayer], comboList[7:14]): # is voiceless (even cols) and playersCards has Ejective affricates 
+                        toCombo = playCombo(curPlayer, comboList[7:14])
+                        playersCards[curPlayer].remove(toCombo)
+                        comboDiac = '\u032c' # voiced
+                    elif (consInfo[toPlay][0] == 1 or consInfo[toPlay][0] == 2) and inside(playersCards[curPlayer], comboList[16:21]): # is (plosive or affricate) and playersCards has coronal ejective fricatives
+                        toCombo = playCombo(curPlayer, comboList[16:21])
+                        playersCards[curPlayer].remove(toCombo)
+                        comboDiac = 'ʰ'
+                    else:
+                        comboDiac = ''
+                    
+                    print(f"player {curPlayer} has played {toPlay}{comboDiac}; info: {consInfo[toPlay]}; cur. # of cards: {len(playersCards[curPlayer])}")
+                    topCard = toPlay
+                    topCardInfo = consInfo[topCard]
+                    
                     if sayVowel[1] != "":
                         if sayVowel[0] != curPlayer: print(f"player {curPlayer} has said /{toPlay}{sayVowel[1]}/")
                         else: sayVowel = (curPlayer, "")
-                    print(f"player {curPlayer} has played {toPlay}; info: {consInfo[toPlay]}; cur. # of cards: {len(playersCards[curPlayer])}")
-                    topCard = toPlay
-                    topCardInfo = consInfo[topCard]
                     break
                     
                 elif hasSpecialVowel(curPlayer):
                     toPlay = chooseSpecialVowel(curPlayer)
                     if toPlay in specialList: # if it is special, not vowel
                         toPlay, isManner, key = findMaxCategory(curPlayer)
+                        if key==None: # if they don't even have reg cards
+                            if not isManner: # places
+                                key = choice()
                         playersCards[curPlayer].remove(toPlay)
-                        if sayVowel[1] != "":
-                            if sayVowel[0] != curPlayer: print(f"player {curPlayer} has said /{toPlay}{sayVowel[1]}/")
-                            else: sayVowel = (curPlayer, "")
                         print(f"player {curPlayer} has played special {toPlay}; cur. # of cards: {len(playersCards[curPlayer])}")
-                        if not isManner: 
-                            topCardInfo = (key, topCardInfo[1])
+                        if not isManner:  # is place to change
+                            if key == None: # if they don't even have reg cards
+                                key = choice(range(24))
+                            topCardInfo = (topCardInfo[0], key)
                             print(f"player {curPlayer} has change place to {key}; now: {topCardInfo}")
                         else: 
-                            topCardInfo = (topCardInfo[0], key)
+                            if key == None: # if they don't even have reg cards
+                                key = choice(range(9))
+                            topCardInfo = (key, topCardInfo[1])
                             print(f"player {curPlayer} has change manner to {key}; now: {topCardInfo}")
                         # specialList[0:7]: place of articulation
                         # specialList[7:14]: manner of articulation
@@ -234,14 +273,19 @@ while all(len(player) != 0 for player in playersCards): # until anyone has 0 car
                         elif toPlay in vowelList[12:16]: # +4
                             drawCards = 4
                             print(f"player {curPlayer} has played +4; now player {(curPlayer + 1 * direction) % playersNum} has to draw 4 cards")
+                        # play combo (+vowels) # +"\u0303"
+                        if inside(playersCards[curPlayer], comboList[14:16]+comboList[21:]):
+                            print(f"player {curPlayer} has used nasalization; cur. # of cards: {len(playersCards[curPlayer])}")
+                            sayVowel = (curPlayer, toPlay+"\u0303") # nasalized
                     # Add special function / Add vowel counts / Add vowel function
                     break
                 
                     
                 else: # draw from card deck
                     if cntDraws == 0:
-                        playersCards[curPlayer].append(cardDeck.pop(0))
-                        print(f"player {curPlayer} has drawn a card from the deck")
+                        toDraw = cardDeck.pop(0)
+                        playersCards[curPlayer].append(toDraw)
+                        print(f"player {curPlayer} has drawn a card from the deck: {toDraw}")
                         cntDraws += 1
                         # And repeat the previous step once
                         
@@ -249,8 +293,13 @@ while all(len(player) != 0 for player in playersCards): # until anyone has 0 car
         else: 
             print(f"player {curPlayer} is skipped")
             hasToSkip = False
+            
+
+        
         curPlayer = (curPlayer + 1 * direction) % playersNum
-        sleep(3)
+        # sleep(0.1)
+        if not all(len(player) != 0 for player in playersCards):
+            break
         
 #drawFromDeck(curPlayer)
 
